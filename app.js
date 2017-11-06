@@ -43,7 +43,8 @@ app.get('/api/bot', function(req, res) {
 
   var user_text = req.param('text') || '<empty>'
   var workspace = process.env.WORKSPACE_ID || '<workspace-id>';
-  if (!workspace || workspace === '<workspace-id>' || user_text === '<empty>' || process.env.GET_ACTIVE === 'OFF') {
+  var check_status = process.env.GET_ACTIVE || 'OFF'
+  if (!workspace || workspace === '<workspace-id>' || user_text === '<empty>' || check_status === 'OFF') {
     return "";
   }
 
