@@ -6,6 +6,7 @@
 var PayloadPanel = (function() {
   var settings = {
     selectors: {
+      //chat-column-holder
       payloadColumn: '#payload-column',
       payloadInitial: '#payload-initial-message',
       payloadRequest: '#payload-request',
@@ -36,10 +37,10 @@ var PayloadPanel = (function() {
     var payloadColumn = document.querySelector(settings.selectors.payloadColumn);
     if (element.classList.contains('full')) {
       element.classList.remove('full');
-      payloadColumn.classList.remove('full');
+      payloadColumn.classList.remove('hidden');
     } else {
       element.classList.add('full');
-      payloadColumn.classList.add('full');
+      payloadColumn.classList.add('hidden');
     }
   }
 

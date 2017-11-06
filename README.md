@@ -1,6 +1,15 @@
 # Conversation Sample Application [![Build Status](https://travis-ci.org/watson-developer-cloud/conversation-simple.svg?branch=master)](http://travis-ci.org/watson-developer-cloud/conversation-simple) [![codecov.io](https://codecov.io/github/watson-developer-cloud/conversation-simple/coverage.svg?branch=master)](https://codecov.io/github/watson-developer-cloud/conversation-simple?branch=master)
 
-This Node.js app demonstrates the Conversation service in a simple chat interface simulating a cognitive car dashboard.
+This Node.js app demonstrates the Conversation service in a simple chat interface simulating a cognitive car dashboard.<br/>
+This is **custom version from conversation-simple** with following modification:<br/>
+1- Ready to integrate with Facebook messenger.<br/>
+2- Maintain webhook conversation context per user.<br/>
+3- Method to handle conversation from browser URL with text tag.<br/>
+(the method created to make testing easier, the default status for method is not activate until you activate it from .env variable)<br/>
+4- Click the tab icon will hide JSON tab instead of increasing it.<br/>
+5- Edit in the conversation.js to convert Arabic numbers into English numbers. (For Watson To Match)<br/>
+**For more about changes check section Facebook Integration**
+
 
 ![Demo](readme_images/demo.gif)
 
@@ -202,6 +211,7 @@ Full license text is available in [LICENSE](LICENSE).
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.md).
+This custom version forked by Barqawiz
 
 ## Open Source @ IBM
 

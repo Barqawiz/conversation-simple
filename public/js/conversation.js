@@ -218,11 +218,24 @@ var ConversationPanel = (function() {
       }
 
       // Send the user message
-      Api.sendRequest(inputBox.value, context);
+      value = inputBox.value
+      value = arabicToEn(value)
+      Api.sendRequest(value, context);
 
       // Clear input box for further messages
       inputBox.value = '';
       Common.fireEvent(inputBox, 'input');
     }
   }
+
+  function arabicToEn(value) {
+    var enValue="";
+    for (var i=0;i<value.length;i++)
+    {
+      var ch=value.charCodeAt(i);
+      enValue+=(ch>=1632 && ch<=1641) ?String.fromCharCode(ch-1584):String.fromCharCode(ch);
+    }
+    return enValue;
+  }
+
 }());

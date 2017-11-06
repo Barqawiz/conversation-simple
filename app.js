@@ -13,15 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+/** Forked version by Barqawiz **/
 'use strict';
 
 var express = require('express'); // app server
+var request = require('request');//Http requests
 var bodyParser = require('body-parser'); // parser for post requests
 var Conversation = require('watson-developer-cloud/conversation/v1'); // watson sdk
 
 var app = express();
-
+/*contextCash: save context through conversation when come from facebook or
+any third party messanger, working on enhanced version that clear context after x time*/
+var contextCash = {}
 // Bootstrap application settings
 app.use(express.static('./public')); // load UI from public folder
 app.use(bodyParser.json());
@@ -30,13 +33,43 @@ app.use(bodyParser.json());
 var conversation = new Conversation({
   // If unspecified here, the CONVERSATION_USERNAME and CONVERSATION_PASSWORD env properties will be checked
   // After that, the SDK will fall back to the bluemix-provided VCAP_SERVICES environment property
-  //'username': process.env.CONVERSATION_USERNAME,
-  //'password': process.env.CONVERSATION_PASSWORD,
+  'username': process.env.CONVERSATION_USERNAME,
+  'password': process.env.CONVERSATION_PASSWORD,
   'version_date': '2017-05-26'
 });
 
+//Endpoint to handle bot request
+app.get('/api/bot', function(req, res) {
+
+  var user_text = req.param('text') || '<empty>'
+  var workspace = process.env.WORKSPACE_ID || '<workspace-id>';
+  if (!workspace || workspace === '<workspace-id>' || user_text === '<empty>' || process.env.GET_ACTIVE === 'OFF') {
+    return "";
+  }
+
+  user_text = { text: user_text.toString("utf8") }
+  var payload = {
+    workspace_id: workspace,
+    context: req.body.context || {},
+    input: user_text || {}
+  };
+
+  // Send the input to the conversation service
+  conversation.message(payload, function(err, data) {
+    if (err) {
+      return res.status(err.code || 500).json(err);
+    }
+    if (data.output && data.output.text) {
+      return data.output.text[0]
+    } else {
+      return "";
+    }
+
+  });
+});
 // Endpoint to be call from the client side
 app.post('/api/message', function(req, res) {
+
   var workspace = process.env.WORKSPACE_ID || '<workspace-id>';
   if (!workspace || workspace === '<workspace-id>') {
     return res.json({
@@ -45,6 +78,7 @@ app.post('/api/message', function(req, res) {
       }
     });
   }
+
   var payload = {
     workspace_id: workspace,
     context: req.body.context || {},
@@ -56,7 +90,9 @@ app.post('/api/message', function(req, res) {
     if (err) {
       return res.status(err.code || 500).json(err);
     }
+
     return res.json(updateMessage(payload, data));
+
   });
 });
 
@@ -90,6 +126,118 @@ function updateMessage(input, response) {
   }
   response.output.text = responseText;
   return response;
+}
+
+//THIRD PARTY
+// Subscribing the webhook
+app.get('/webhook/', function (req, res) {
+    if (req.query['hub.verify_token'] === process.env.FACEBOOK_VERIFY) {
+        res.send(req.query['hub.challenge']);
+    }
+    res.send('Error, wrong validation token');
+})
+
+// Incoming messages reach this end point //
+app.post('/webhook', (req, res) => {
+  console.log('**webhook invoced')
+  // Parse the request body from the POST
+  let body = req.body;
+  // Check the webhook event is from a Page subscription
+  if (body.object === 'page') {
+    // Iterate over each entry - there may be multiple if batched
+    body.entry.forEach(function(entry) {
+
+      // Gets the body of the webhook event
+      let webhook_event = entry.messaging[0];
+      //console.log(webhook_event);
+
+      // Get the sender PSID
+      let sender_psid = webhook_event.sender.id;
+      //console.log('Sender PSID: ' + sender_psid);
+
+      // Check if the event is a message or postback and
+      // pass the event to the appropriate handler function
+      if (webhook_event.message) {
+        let ctx = {}
+        ctx = contextCash[sender_psid] || ctx
+
+        handleMessage(sender_psid, webhook_event.message, ctx);
+      } else if (webhook_event.postback) {
+        console.log('postback request in webhook')
+      }
+
+    });
+    // Return a '200 OK' response to all events
+    res.status(200).send('EVENT_RECEIVED');
+
+  } else {
+    // Return a '404 Not Found' if event is not from a page subscription
+    res.sendStatus(404);
+  }
+
+});
+
+function handleMessage(sender_psid, received_message, contx) {
+
+  // Check if the message contains text
+  if (received_message.text) {
+    console.log("inside check")
+
+    let workspace = process.env.WORKSPACE_ID;
+    let text = { text: "'"+received_message.text+"'" }
+    let payload = {
+      workspace_id: workspace,
+      context:  contx || {},
+      input: text || {}
+    };
+
+    // Send the input to the conversation service
+    conversation.message(payload, function(err, data) {
+      if (err) {
+        return res.status(err.code || 500).json(err);
+      }
+
+      if (data.output && data.output.text) {
+
+        let response = {
+          "text": "'"+data.output.text[0]+"'"
+        }
+        callFacebookAPI(sender_psid, response);
+        //cash last context with the user
+        contextCash[sender_psid] = data.context
+      } else {
+        console.log("***response is empty: ***")
+        return;
+      }
+
+    });
+  }
+
+
+}
+
+function callFacebookAPI(sender_psid, response) {
+  // Construct the message body
+  let request_body = {
+    "recipient": {
+      "id": sender_psid
+    },
+    "message": response
+  }
+
+  // Send the HTTP request to the Messenger Platform
+  request({
+    "uri": "https://graph.facebook.com/v2.6/me/messages",
+    "qs": { "access_token": process.env.FACEBOOK_TOKEN },
+    "method": "POST",
+    "json": request_body
+  }, (err, res, body) => {
+    if (!err) {
+      console.log('message sent!')
+    } else {
+      console.error("Unable to send message:" + err);
+    }
+  });
 }
 
 module.exports = app;
