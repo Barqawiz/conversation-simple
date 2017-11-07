@@ -8,7 +8,7 @@ This is **custom version from conversation-simple** with following modification:
 (the method created to make testing easier, the default status for method is not activate until you activate it from .env variable)<br/>
 4- Click the tab icon will hide JSON tab instead of increasing it.<br/>
 5- Edit in the conversation.js to convert Arabic numbers into English numbers. (For Watson To Match)<br/>
-**For Facebook Integration only need to set params in .env file (More in the Simple_How_To.pdf)**
+**For Facebook Integration only need to set params in .env file (More about FB intigration in [Simple_How_To](Simple_How_To.pdf))**
 <br/><br/>
 
 ![Demo](readme_images/demo.gif)
